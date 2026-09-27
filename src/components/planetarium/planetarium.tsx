@@ -1,7 +1,16 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import {
+  Component,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type ReactNode,
+} from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -81,14 +90,6 @@ function clockLabel(ms: number) {
   return new Date(ms).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 }
 
-function useIsClient() {
-  return useSyncExternalStore(
-    () => () => {},
-    () => true,
-    () => false,
-  );
-}
-
 function useCoarsePointer() {
   return useSyncExternalStore(
     (notify) => {
@@ -101,8 +102,26 @@ function useCoarsePointer() {
   );
 }
 
+class SkyBoundary extends Component<{ children: ReactNode }, { message: string | null }> {
+  state = { message: null as string | null };
+
+  static getDerivedStateFromError(error: unknown) {
+    return { message: error instanceof Error ? error.message : "The sky view failed to start." };
+  }
+
+  render() {
+    if (this.state.message) {
+      return (
+        <div className="grid h-full place-items-center px-6 text-center text-sm text-[#d5deef]">
+          The sky could not start in this browser. {this.state.message}
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 export function Planetarium() {
-  const mounted = useIsClient();
   const coarse = useCoarsePointer();
   const [when, setWhen] = useState(() => Date.now());
   const [lat, setLat] = useState(FALLBACK_PLACE.lat);
@@ -384,17 +403,10 @@ export function Planetarium() {
             ? "Drag to look, or aim with the phone."
             : "Drag to look around. Scroll to zoom. Arrow keys work too.";
 
-  if (!mounted) {
-    return (
-      <div className="grid h-dvh place-items-center bg-[#070b14] text-[#d5deef]">
-        <p className="text-sm tracking-wide">Plotting the bright stars…</p>
-      </div>
-    );
-  }
-
   return (
     <div className="relative h-dvh w-full overflow-hidden bg-[#070b14] text-[#e7eefc]">
       <div className="absolute inset-0">
+        <SkyBoundary>
         <SkyView
           placed={placed}
           lat={lat}
@@ -408,6 +420,7 @@ export function Planetarium() {
           onPick={onPick}
           onLabels={onLabels}
         />
+        </SkyBoundary>
       </div>
 
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_45%,rgba(0,0,0,0.38)_100%)]" />
