@@ -29,7 +29,8 @@ import {
   skyBoundaries,
   skyStars,
 } from "@/lib/catalog";
-import { constellationInfo, starNote } from "@/lib/constellations";
+import { constellationStory, starStory } from "@/lib/constellation-stories";
+import { constellationInfo } from "@/lib/constellations";
 import {
   altAzToVector,
   angleBetween,
@@ -325,18 +326,11 @@ export function Planetarium() {
   }, [lat, lon, placed, view.alt, view.az, view.fov, whenDate]);
 
   const pinnedStar = pin?.kind === "star" ? placed.find((star) => star.hr === pin.hr) ?? null : null;
-  const pinnedCode = pin?.kind === "constellation" ? pin.code : pinnedStar?.con ?? null;
-  const displayCode = pinnedCode ?? (reading.mode === "sky" ? reading.code : null);
-  const displayStar =
-    pinnedStar ??
-    (pin?.kind === "constellation"
-      ? placed
-          .filter((star) => star.con === pin.code && star.name)
-          .sort((a, b) => a.mag - b.mag)[0] ?? null
-      : reading.mode === "sky"
-        ? reading.star
-        : null);
-  const info = displayCode ? constellationInfo(displayCode) : null;
+  const aimedCode = reading.mode === "sky" ? reading.code : null;
+  const aimed = aimedCode ? constellationInfo(aimedCode) : null;
+  const aimedStar = reading.mode === "sky" ? reading.star : null;
+  const aimedStarLine = aimedStar?.name ? starStory(aimedStar.name) : null;
+  const aimedStory = aimedCode ? constellationStory(aimedCode) : null;
 
   async function aimWithPhone() {
     const ctor = DeviceOrientationEvent as unknown as {
@@ -423,7 +417,7 @@ export function Planetarium() {
         </SkyBoundary>
       </div>
 
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_45%,rgba(0,0,0,0.38)_100%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_52%,rgba(0,0,0,0.28)_100%)]" />
 
       {showLabels
         ? labels.map((label) => (
@@ -446,25 +440,24 @@ export function Planetarium() {
           ))
         : null}
 
-      <header className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start justify-between gap-3 p-3 sm:p-5">
-        <div className="max-w-[min(36rem,calc(100%-1rem))]">
-          <p className="font-serif text-2xl tracking-tight text-[#f3efe4] sm:text-3xl">Stargazer</p>
-          <p className="mt-1 max-w-xl text-xs leading-relaxed text-[#b7c3da] sm:text-sm">{placeLine}</p>
-          <p className="mt-1 text-xs text-[#8ea0bf]">
-            {new Date(when).toLocaleString([], {
-              weekday: "short",
-              month: "short",
-              day: "numeric",
-              hour: "numeric",
-              minute: "2-digit",
-            })}
-            <span className="mx-1.5 text-[#5c6b84]">·</span>
-            sidereal {formatHours(lst)}
-          </p>
+      <header className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start justify-between gap-4 px-4 pt-[max(0.85rem,env(safe-area-inset-top))] sm:px-7 sm:pt-6">
+        <div className="max-w-[15rem] sm:max-w-xs">
+          <p className="text-[11px] tracking-[0.32em] text-[#e4b56a] uppercase">Stargazer</p>
+          <p className="mt-1 text-[11px] leading-relaxed text-[#9eb0c9] sm:text-xs">{placeLine}</p>
         </div>
+        <p className="shrink-0 text-right text-[11px] leading-relaxed text-[#9eb0c9] tabular-nums sm:text-xs">
+          {new Date(when).toLocaleString([], {
+            weekday: "short",
+            month: "short",
+            day: "numeric",
+            hour: "numeric",
+            minute: "2-digit",
+          })}
+          <span className="mt-0.5 block">sidereal {formatHours(lst)}</span>
+        </p>
       </header>
 
-      <div className="pointer-events-none absolute top-1/2 left-1/2 z-10 -translate-x-1/2 -translate-y-1/2">
+      <div className="pointer-events-none absolute top-[42%] left-1/2 z-10 -translate-x-1/2 -translate-y-1/2 sm:top-[38%]">
         <div className="relative size-10">
           <span className="absolute top-0 left-1/2 h-full w-px -translate-x-1/2 bg-[#e4b56a]/85" />
           <span className="absolute top-1/2 left-0 h-px w-full -translate-y-1/2 bg-[#e4b56a]/85" />
@@ -472,37 +465,43 @@ export function Planetarium() {
         </div>
       </div>
 
-      <section
-        role="status"
-        aria-live="polite"
-        className="pointer-events-none absolute top-28 left-1/2 z-10 w-[min(28rem,calc(100%-1.5rem))] -translate-x-1/2 text-center sm:top-[calc(50%+2.8rem)]"
-      >
-        <p className="text-[10px] tracking-[0.22em] text-[#e4b56a]/80 uppercase">
-          {view.alt < -2 ? "Ground" : pin ? "Selected" : "In the reticle"}
-        </p>
-        {view.alt < -2 && !pin ? (
-          <p className="mt-1 text-sm text-[#d5deef]">The ground is in the reticle. Tilt up into the sky.</p>
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-[#070b14] via-[#070b14]/88 to-transparent px-4 pt-16 pb-[max(0.7rem,env(safe-area-inset-bottom))] sm:px-7 sm:pt-24">
+      <section role="status" aria-live="polite" className="mb-4 max-w-xl md:max-w-2xl">
+        {view.alt < -2 ? (
+          <>
+            <p className="text-[11px] font-medium tracking-[0.34em] text-[#e4b56a] uppercase">Horizon</p>
+            <h1 className="mt-1 font-serif text-[2.9rem] leading-[0.9] tracking-tight text-[#f6f1e6] drop-shadow-[0_10px_28px_rgba(0,0,0,0.9)] sm:text-6xl md:text-[4.6rem]">
+              Ground
+            </h1>
+            <p className="mt-3 max-w-lg text-[0.95rem] leading-relaxed text-[#e7e1d4] md:text-[1.05rem]">
+              The reticle is below the horizon. Tilt up to bring a constellation into view.
+            </p>
+          </>
         ) : (
           <>
-            <h2 className="font-serif text-3xl text-[#f7f3ea] sm:text-4xl">{info?.name ?? "Open sky"}</h2>
-            <p className="mx-auto mt-1 max-w-md text-sm leading-relaxed text-[#c5d0e4]">
-              {info?.blurb ?? "No constellation boundary covers this exact point."}
+            <p className="text-[11px] font-medium tracking-[0.34em] text-[#e4b56a] uppercase">
+              {aimed ? "Constellation" : "Open sky"}
             </p>
-            {displayStar?.name ? (
-              <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-[#f0e2c4]">
-                <span className="text-[#e4b56a]">{displayStar.name}</span>
-                {" · "}
-                {starNote(displayStar.name, info?.name ?? "the sky", displayStar.mag)}
-              </p>
-            ) : (
-              <p className="mt-2 text-sm text-[#9aabc4]">No bright named star sits in the reticle.</p>
-            )}
+            <h1 className="mt-1 font-serif text-[2.9rem] leading-[0.9] tracking-tight text-balance text-[#f6f1e6] drop-shadow-[0_10px_28px_rgba(0,0,0,0.9)] sm:text-6xl md:text-[4.6rem]">
+              {aimed?.name ?? "Open sky"}
+            </h1>
+            {aimedStar?.name ? (
+              <div className="mt-3 max-w-lg">
+                <p className="font-serif text-xl text-[#e4b56a] md:text-[1.65rem]">{aimedStar.name}</p>
+                {aimedStarLine ? (
+                  <p className="mt-1 text-sm leading-relaxed text-[#ddd4c2] md:text-base">{aimedStarLine}</p>
+                ) : null}
+              </div>
+            ) : null}
+            <p className="pointer-events-auto mt-3 max-h-32 overflow-y-auto border-l border-[#e4b56a]/35 pl-3 text-[1.02rem] leading-relaxed text-[#e7e1d4] md:max-h-none md:text-[1.25rem]">
+              {aimedStory ?? "No constellation figure covers this point of the sky."}
+            </p>
           </>
         )}
       </section>
 
-      <footer className="absolute inset-x-0 bottom-0 z-20 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-        <div className="mx-auto flex max-w-3xl flex-col gap-3 rounded-2xl border border-white/10 bg-[#0b1220]/82 p-3 shadow-2xl backdrop-blur-md">
+      <footer className="pointer-events-auto">
+        <div className="mx-auto flex max-w-3xl flex-col gap-3 border-t border-[#e4b56a]/20 pt-3">
           <div className="flex items-center gap-3">
             <span className="w-16 shrink-0 text-xs text-[#e4d2b0]">{clockLabel(when)}</span>
             <Slider
@@ -605,6 +604,7 @@ export function Planetarium() {
           <p className="text-[11px] leading-relaxed text-[#8ea0bf]">{sensorLine}</p>
         </div>
       </footer>
+      </div>
     </div>
   );
 }
